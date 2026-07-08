@@ -1,4 +1,4 @@
-import type { Holding, Transaction, PortfolioSummary, ChartDataPoint } from "./types";
+import type { Holding, Transaction, PortfolioSummary, ChartDataPoint, PriceAlert, Referral } from "./types";
 
 const STORAGE_PREFIX = "invest_";
 
@@ -161,4 +161,132 @@ export function generateChartData(userId: string): ChartDataPoint[] {
     });
   }
   return data;
+}
+
+export function depositFunds(userId: string, amount: number): boolean {
+  if (amount < 5000) return false;
+  const cash = getCashBalance(userId);
+  const txs = getTransactions(userId);
+  const today = new Date().toISOString().split("T")[0];
+
+  txs.unshift({
+    id: Date.now().toString(),
+    type: "deposit",
+    symbol: "CASH",
+    shares: 1,
+    price: amount,
+    total: amount,
+    date: today,
+  });
+
+  saveCashBalance(userId, cash + amount);
+  saveTransactions(userId, txs);
+  return true;
+}
+
+export function withdrawFunds(userId: string, amount: number): boolean {
+  if (amount < 5000) return false;
+  const cash = getCashBalance(userId);
+  if (amount > cash) return false;
+
+  const txs = getTransactions(userId);
+  const today = new Date().toISOString().split("T")[0];
+
+  txs.unshift({
+    id: Date.now().toString(),
+    type: "withdrawal",
+    symbol: "CASH",
+    shares: 1,
+    price: amount,
+    total: amount,
+    date: today,
+  });
+
+  saveCashBalance(userId, cash - amount);
+  saveTransactions(userId, txs);
+  return true;
+}
+
+export function getAlerts(userId: string): PriceAlert[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem(getKey(userId, "alerts"));
+  return raw ? JSON.parse(raw) : [];
+}
+
+export function saveAlerts(userId: string, alerts: PriceAlert[]) {
+  localStorage.setItem(getKey(userId, "alerts"), JSON.stringify(alerts));
+}
+
+export function createAlert(userId: string, symbol: string, name: string, targetPrice: number, direction: "above" | "below"): PriceAlert {
+  const alerts = getAlerts(userId);
+  const newAlert: PriceAlert = {
+    id: Date.now().toString(),
+    symbol,
+    name,
+    targetPrice,
+    direction,
+    active: true,
+    createdAt: new Date().toISOString().split("T")[0],
+    triggered: false,
+  };
+  alerts.unshift(newAlert);
+  saveAlerts(userId, alerts);
+  return newAlert;
+}
+
+export function deleteAlert(userId: string, alertId: string) {
+  const alerts = getAlerts(userId).filter((a) => a.id !== alertId);
+  saveAlerts(userId, alerts);
+}
+
+export function toggleAlert(userId: string, alertId: string) {
+  const alerts = getAlerts(userId);
+  const alert = alerts.find((a) => a.id === alertId);
+  if (alert) {
+    alert.active = !alert.active;
+    saveAlerts(userId, alerts);
+  }
+}
+
+export function getReferralCode(userId: string): string {
+  if (typeof window === "undefined") return "";
+  const raw = localStorage.getItem(getKey(userId, "referralCode"));
+  if (raw) return JSON.parse(raw);
+  const code = `INV${userId.slice(-4)}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  localStorage.setItem(getKey(userId, "referralCode"), JSON.stringify(code));
+  return code;
+}
+
+export function getReferrals(userId: string): Referral[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem(getKey(userId, "referrals"));
+  return raw ? JSON.parse(raw) : [];
+}
+
+export function saveReferrals(userId: string, referrals: Referral[]) {
+  localStorage.setItem(getKey(userId, "referrals"), JSON.stringify(referrals));
+}
+
+export function addReferral(userId: string, referredEmail: string): Referral | null {
+  const referrals = getReferrals(userId);
+  const exists = referrals.find((r) => r.referredEmail === referredEmail);
+  if (exists) return null;
+
+  const newReferral: Referral = {
+    id: Date.now().toString(),
+    code: getReferralCode(userId),
+    referredBy: userId,
+    referredEmail,
+    status: "completed",
+    bonus: 500,
+    date: new Date().toISOString().split("T")[0],
+  };
+
+  referrals.unshift(newReferral);
+  saveReferrals(userId, referrals);
+
+  const cash = getCashBalance(userId);
+  saveCashBalance(userId, cash + 500);
+
+  return newReferral;
 }

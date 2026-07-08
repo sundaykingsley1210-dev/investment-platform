@@ -19,7 +19,7 @@ export interface Holding {
 
 export interface Transaction {
   id: string;
-  type: "buy" | "sell" | "dividend";
+  type: "buy" | "sell" | "dividend" | "deposit" | "withdrawal";
   symbol: string;
   shares: number;
   price: number;
@@ -49,4 +49,25 @@ export interface PortfolioSummary {
 export interface ChartDataPoint {
   date: string;
   value: number;
+}
+
+export interface PriceAlert {
+  id: string;
+  symbol: string;
+  name: string;
+  targetPrice: number;
+  direction: "above" | "below";
+  active: boolean;
+  createdAt: string;
+  triggered: boolean;
+}
+
+export interface Referral {
+  id: string;
+  code: string;
+  referredBy: string;
+  referredEmail: string;
+  status: "pending" | "completed";
+  bonus: number;
+  date: string;
 }

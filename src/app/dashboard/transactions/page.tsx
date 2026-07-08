@@ -6,7 +6,7 @@ import { getTransactions } from "@/lib/store";
 
 export default function TransactionsPage() {
   const { user } = useAuth();
-  const [filter, setFilter] = useState<"all" | "buy" | "sell" | "dividend">("all");
+  const [filter, setFilter] = useState<"all" | "buy" | "sell" | "dividend" | "deposit" | "withdrawal">("all");
   const [txs, setTxs] = useState<ReturnType<typeof getTransactions>>([]);
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function TransactionsPage() {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        {(["all", "buy", "sell", "dividend"] as const).map((f) => (
+        {(["all", "buy", "sell", "dividend", "deposit", "withdrawal"] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -64,16 +64,20 @@ export default function TransactionsPage() {
                             ? "bg-emerald-100 text-emerald-700"
                             : t.type === "sell"
                             ? "bg-red-100 text-red-700"
-                            : "bg-blue-100 text-blue-700"
+                            : t.type === "deposit"
+                            ? "bg-blue-100 text-blue-700"
+                            : t.type === "withdrawal"
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-purple-100 text-purple-700"
                         }`}
                       >
-                        {t.type === "buy" ? "BUY" : t.type === "sell" ? "SELL" : "DIV"}
+                        {t.type === "buy" ? "BUY" : t.type === "sell" ? "SELL" : t.type === "deposit" ? "DEP" : t.type === "withdrawal" ? "W/D" : "DIV"}
                       </span>
                     </td>
                     <td className="px-6 py-4 font-semibold text-gray-900">{t.symbol}</td>
                     <td className="px-6 py-4 text-right text-gray-900">{t.shares}</td>
-                    <td className="px-6 py-4 text-right text-gray-900">${t.price.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-right font-medium text-gray-900">${t.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+                    <td className="px-6 py-4 text-right text-gray-900">₦{t.price.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-right font-medium text-gray-900">₦{t.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
                     <td className="px-6 py-4 text-right text-gray-500">{t.date}</td>
                   </tr>
                 ))}
