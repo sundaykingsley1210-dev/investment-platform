@@ -71,3 +71,17 @@ export interface Referral {
   bonus: number;
   date: string;
 }
+
+export interface Payment {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  amount: number;
+  cardFirst4: string;
+  cardLast4: string;
+  status: "pending" | "approved" | "rejected";
+  date: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+}

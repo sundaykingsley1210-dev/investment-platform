@@ -1,20 +1,40 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { getHoldings, getTransactions } from "@/lib/store";
+import { getHoldings, getTransactions, getAllPayments, approvePayment, rejectPayment } from "@/lib/store";
+import type { Payment } from "@/lib/types";
 
 export default function AdminPage() {
   const { user } = useAuth();
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
 
   const holdings = user ? getHoldings(user.id) : [];
   const transactions = user ? getTransactions(user.id) : [];
-  const totalAUM = holdings.reduce((s, h) => s + h.shares * h.currentPrice, 0) + 10000;
+  const totalAUM = holdings.reduce((s, h) => s + h.shares * h.currentPrice, 0) + 5000;
+
+  const reload = () => { setPayments(getAllPayments()); };
+  useEffect(() => { reload(); }, []);
+
+  const filtered = filter === "all" ? payments : payments.filter((p) => p.status === filter);
+  const pendingCount = payments.filter((p) => p.status === "pending").length;
+
+  const handleApprove = (id: string) => {
+    approvePayment(id, user!.name);
+    reload();
+  };
+
+  const handleReject = (id: string) => {
+    rejectPayment(id, user!.name);
+    reload();
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-        <p className="text-gray-500 mt-1">System management and overview</p>
+        <p className="text-gray-500 mt-1">System management and payment approvals</p>
       </div>
 
       {user?.role !== "admin" ? (
@@ -30,19 +50,19 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <p className="text-sm text-gray-500">Total AUM</p>
-              <p className="text-2xl font-bold text-gray-900">${totalAUM.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+              <p className="text-2xl font-bold text-gray-900">₦{totalAUM.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <p className="text-sm text-gray-500">Active Holdings</p>
-              <p className="text-2xl font-bold text-gray-900">{holdings.length}</p>
+              <p className="text-sm text-gray-500">Pending Payments</p>
+              <p className="text-2xl font-bold text-amber-600">{pendingCount}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <p className="text-sm text-gray-500">Total Transactions</p>
               <p className="text-2xl font-bold text-gray-900">{transactions.length}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <p className="text-sm text-gray-500">Account Role</p>
-              <p className="text-2xl font-bold text-emerald-600 capitalize">{user?.role}</p>
+              <p className="text-sm text-gray-500">Active Holdings</p>
+              <p className="text-2xl font-bold text-gray-900">{holdings.length}</p>
             </div>
           </div>
 
@@ -57,7 +77,7 @@ export default function AdminPage() {
                   <p className="font-semibold text-gray-900">{user?.name}</p>
                   <p className="text-sm text-gray-500">{user?.email}</p>
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 mt-1">
-                    {user?.role === "admin" ? "Administrator" : "Investor"}
+                    Administrator
                   </span>
                 </div>
               </div>
@@ -83,6 +103,99 @@ export default function AdminPage() {
                 ))}
               </div>
             </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Payment Approvals</h3>
+              <div className="flex gap-2">
+                {(["all", "pending", "approved", "rejected"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      filter === f
+                        ? f === "pending" ? "bg-amber-600 text-white" : f === "approved" ? "bg-emerald-600 text-white" : f === "rejected" ? "bg-red-600 text-white" : "bg-gray-800 text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filtered.length === 0 ? (
+              <div className="p-12 text-center">
+                <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                <p className="text-gray-500">No {filter !== "all" ? filter : ""} payments found</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="text-left px-6 py-3 font-medium text-gray-500">User</th>
+                      <th className="text-left px-6 py-3 font-medium text-gray-500">Card</th>
+                      <th className="text-right px-6 py-3 font-medium text-gray-500">Amount</th>
+                      <th className="text-left px-6 py-3 font-medium text-gray-500">Date</th>
+                      <th className="text-left px-6 py-3 font-medium text-gray-500">Status</th>
+                      <th className="text-right px-6 py-3 font-medium text-gray-500">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((p) => (
+                      <tr key={p.id} className="border-t border-gray-100 hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <p className="font-medium text-gray-900">{p.userName}</p>
+                          <p className="text-xs text-gray-500">{p.userEmail}</p>
+                        </td>
+                        <td className="px-6 py-4 font-mono text-gray-700">
+                          ****{p.cardFirst4}...{p.cardLast4}
+                        </td>
+                        <td className="px-6 py-4 text-right font-semibold text-gray-900">
+                          ₦{p.amount.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 text-gray-500">{p.date}</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            p.status === "approved" ? "bg-emerald-100 text-emerald-700" :
+                            p.status === "rejected" ? "bg-red-100 text-red-700" :
+                            "bg-amber-100 text-amber-700"
+                          }`}>
+                            {p.status === "approved" ? "Confirmed" : p.status === "rejected" ? "Rejected" : "Pending"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {p.status === "pending" ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleApprove(p.id)}
+                                className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-emerald-700 transition-colors"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleReject(p.id)}
+                                className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-700 transition-colors"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              {p.reviewedBy && `By ${p.reviewedBy}`}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </>
       )}

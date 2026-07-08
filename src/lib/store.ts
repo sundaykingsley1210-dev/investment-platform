@@ -1,4 +1,4 @@
-import type { Holding, Transaction, PortfolioSummary, ChartDataPoint, PriceAlert, Referral } from "./types";
+import type { Holding, Transaction, PortfolioSummary, ChartDataPoint, PriceAlert, Referral, Payment } from "./types";
 
 const STORAGE_PREFIX = "invest_";
 
@@ -289,4 +289,79 @@ export function addReferral(userId: string, referredEmail: string): Referral | n
   saveCashBalance(userId, cash + 500);
 
   return newReferral;
+}
+
+const PAYMENTS_KEY = "invest_all_payments";
+
+export function getAllPayments(): Payment[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem(PAYMENTS_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export function saveAllPayments(payments: Payment[]) {
+  localStorage.setItem(PAYMENTS_KEY, JSON.stringify(payments));
+}
+
+export function createPayment(userId: string, userName: string, userEmail: string, amount: number, cardFirst4: string, cardLast4: string): Payment {
+  const payments = getAllPayments();
+  const newPayment: Payment = {
+    id: Date.now().toString(),
+    userId,
+    userName,
+    userEmail,
+    amount,
+    cardFirst4,
+    cardLast4,
+    status: "pending",
+    date: new Date().toISOString().split("T")[0],
+  };
+  payments.unshift(newPayment);
+  saveAllPayments(payments);
+  return newPayment;
+}
+
+export function getUserPayments(userId: string): Payment[] {
+  return getAllPayments().filter((p) => p.userId === userId);
+}
+
+export function approvePayment(paymentId: string, adminName: string): boolean {
+  const payments = getAllPayments();
+  const payment = payments.find((p) => p.id === paymentId);
+  if (!payment || payment.status !== "pending") return false;
+
+  payment.status = "approved";
+  payment.reviewedBy = adminName;
+  payment.reviewedAt = new Date().toISOString();
+
+  const cash = getCashBalance(payment.userId);
+  saveCashBalance(payment.userId, cash + payment.amount);
+
+  const txs = getTransactions(payment.userId);
+  txs.unshift({
+    id: Date.now().toString(),
+    type: "deposit",
+    symbol: "CASH",
+    shares: 1,
+    price: payment.amount,
+    total: payment.amount,
+    date: payment.date,
+  });
+  saveTransactions(payment.userId, txs);
+
+  saveAllPayments(payments);
+  return true;
+}
+
+export function rejectPayment(paymentId: string, adminName: string): boolean {
+  const payments = getAllPayments();
+  const payment = payments.find((p) => p.id === paymentId);
+  if (!payment || payment.status !== "pending") return false;
+
+  payment.status = "rejected";
+  payment.reviewedBy = adminName;
+  payment.reviewedAt = new Date().toISOString();
+
+  saveAllPayments(payments);
+  return true;
 }
