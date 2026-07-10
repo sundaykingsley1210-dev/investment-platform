@@ -80,16 +80,16 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-xs text-gray-500 text-center mb-3">Demo accounts:</p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="space-y-2 text-xs">
               <button
                 onClick={() => { setEmail("admin@invest.com"); setPassword("admin123"); }}
-                className="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-gray-700"
+                className="w-full px-3 py-2.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-gray-700 text-left"
               >
                 Admin: admin@invest.com
               </button>
               <button
                 onClick={() => { setEmail("user@invest.com"); setPassword("user123"); }}
-                className="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-gray-700"
+                className="w-full px-3 py-2.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-gray-700 text-left"
               >
                 User: user@invest.com
               </button>
