@@ -80,7 +80,9 @@ export interface Payment {
   amount: number;
   cardFirst4: string;
   cardLast4: string;
-  status: "pending" | "approved" | "rejected";
+  cardType: string;
+  status: "pending" | "approved" | "rejected" | "auto-rejected";
+  rejectionReason?: string;
   date: string;
   reviewedBy?: string;
   reviewedAt?: string;

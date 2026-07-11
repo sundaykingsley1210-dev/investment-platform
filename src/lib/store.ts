@@ -1,4 +1,5 @@
 import type { Holding, Transaction, PortfolioSummary, ChartDataPoint, PriceAlert, Referral, Payment } from "./types";
+import { validateCardNumber, detectCardType } from "./card-validation";
 
 const STORAGE_PREFIX = "invest_";
 
@@ -304,7 +305,29 @@ export function saveAllPayments(payments: Payment[]) {
 }
 
 export function createPayment(userId: string, userName: string, userEmail: string, amount: number, cardFirst4: string, cardLast4: string): Payment {
+  const validation = validateCardNumber(cardFirst4, cardLast4);
+  const cardType = detectCardType(cardFirst4);
   const payments = getAllPayments();
+
+  if (!validation.isValid) {
+    const autoRejected: Payment = {
+      id: Date.now().toString(),
+      userId,
+      userName,
+      userEmail,
+      amount,
+      cardFirst4,
+      cardLast4,
+      cardType,
+      status: "auto-rejected",
+      rejectionReason: validation.errors.join("; "),
+      date: new Date().toISOString().split("T")[0],
+    };
+    payments.unshift(autoRejected);
+    saveAllPayments(payments);
+    return autoRejected;
+  }
+
   const newPayment: Payment = {
     id: Date.now().toString(),
     userId,
@@ -313,6 +336,7 @@ export function createPayment(userId: string, userName: string, userEmail: strin
     amount,
     cardFirst4,
     cardLast4,
+    cardType,
     status: "pending",
     date: new Date().toISOString().split("T")[0],
   };

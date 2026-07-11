@@ -8,7 +8,7 @@ import type { Payment } from "@/lib/types";
 export default function AdminPage() {
   const { user } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected" | "auto-rejected">("all");
 
   const holdings = user ? getHoldings(user.id) : [];
   const transactions = user ? getTransactions(user.id) : [];
@@ -19,6 +19,7 @@ export default function AdminPage() {
 
   const filtered = filter === "all" ? payments : payments.filter((p) => p.status === filter);
   const pendingCount = payments.filter((p) => p.status === "pending").length;
+  const autoRejectedCount = payments.filter((p) => p.status === "auto-rejected").length;
 
   const handleApprove = (id: string) => {
     approvePayment(id, user!.name);
@@ -57,8 +58,8 @@ export default function AdminPage() {
               <p className="text-2xl font-bold text-amber-600">{pendingCount}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <p className="text-sm text-gray-500">Total Transactions</p>
-              <p className="text-2xl font-bold text-gray-900">{transactions.length}</p>
+              <p className="text-sm text-gray-500">Auto-Rejected</p>
+              <p className="text-2xl font-bold text-red-600">{autoRejectedCount}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <p className="text-sm text-gray-500">Active Holdings</p>
@@ -106,20 +107,20 @@ export default function AdminPage() {
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h3 className="font-semibold text-gray-900">Payment Approvals</h3>
-              <div className="flex gap-2">
-                {(["all", "pending", "approved", "rejected"] as const).map((f) => (
+              <div className="flex gap-2 flex-wrap">
+                {(["all", "pending", "approved", "rejected", "auto-rejected"] as const).map((f) => (
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                       filter === f
-                        ? f === "pending" ? "bg-amber-600 text-white" : f === "approved" ? "bg-emerald-600 text-white" : f === "rejected" ? "bg-red-600 text-white" : "bg-gray-800 text-white"
+                        ? f === "pending" ? "bg-amber-600 text-white" : f === "approved" ? "bg-emerald-600 text-white" : f === "rejected" || f === "auto-rejected" ? "bg-red-600 text-white" : "bg-gray-800 text-white"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                    {f === "auto-rejected" ? "Auto-Rejected" : f.charAt(0).toUpperCase() + f.slice(1)}
                   </button>
                 ))}
               </div>
@@ -130,7 +131,7 @@ export default function AdminPage() {
                 <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
-                <p className="text-gray-500">No {filter !== "all" ? filter : ""} payments found</p>
+                <p className="text-gray-500">No {filter !== "all" ? filter.replace("-", " ") : ""} payments found</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -139,6 +140,7 @@ export default function AdminPage() {
                     <tr>
                       <th className="text-left px-6 py-3 font-medium text-gray-500">User</th>
                       <th className="text-left px-6 py-3 font-medium text-gray-500">Card</th>
+                      <th className="text-left px-6 py-3 font-medium text-gray-500">Type</th>
                       <th className="text-right px-6 py-3 font-medium text-gray-500">Amount</th>
                       <th className="text-left px-6 py-3 font-medium text-gray-500">Date</th>
                       <th className="text-left px-6 py-3 font-medium text-gray-500">Status</th>
@@ -147,7 +149,7 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {filtered.map((p) => (
-                      <tr key={p.id} className="border-t border-gray-100 hover:bg-gray-50">
+                      <tr key={p.id} className={`border-t border-gray-100 hover:bg-gray-50 ${p.status === "auto-rejected" ? "bg-red-50" : ""}`}>
                         <td className="px-6 py-4">
                           <p className="font-medium text-gray-900">{p.userName}</p>
                           <p className="text-xs text-gray-500">{p.userEmail}</p>
@@ -155,18 +157,33 @@ export default function AdminPage() {
                         <td className="px-6 py-4 font-mono text-gray-700">
                           ****{p.cardFirst4}...{p.cardLast4}
                         </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            p.cardType === "Visa" ? "bg-blue-100 text-blue-700" :
+                            p.cardType === "Mastercard" ? "bg-orange-100 text-orange-700" :
+                            p.cardType === "Verve" ? "bg-green-100 text-green-700" :
+                            "bg-gray-100 text-gray-700"
+                          }`}>
+                            {p.cardType || "Unknown"}
+                          </span>
+                        </td>
                         <td className="px-6 py-4 text-right font-semibold text-gray-900">
                           ₦{p.amount.toLocaleString()}
                         </td>
                         <td className="px-6 py-4 text-gray-500">{p.date}</td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            p.status === "approved" ? "bg-emerald-100 text-emerald-700" :
-                            p.status === "rejected" ? "bg-red-100 text-red-700" :
-                            "bg-amber-100 text-amber-700"
-                          }`}>
-                            {p.status === "approved" ? "Confirmed" : p.status === "rejected" ? "Rejected" : "Pending"}
-                          </span>
+                          <div>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              p.status === "approved" ? "bg-emerald-100 text-emerald-700" :
+                              p.status === "rejected" || p.status === "auto-rejected" ? "bg-red-100 text-red-700" :
+                              "bg-amber-100 text-amber-700"
+                            }`}>
+                              {p.status === "approved" ? "Confirmed" : p.status === "rejected" ? "Rejected" : p.status === "auto-rejected" ? "Auto-Rejected" : "Pending"}
+                            </span>
+                            {p.rejectionReason && (
+                              <p className="text-xs text-red-500 mt-1 max-w-[200px]">{p.rejectionReason}</p>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-right">
                           {p.status === "pending" ? (
@@ -184,6 +201,8 @@ export default function AdminPage() {
                                 Reject
                               </button>
                             </div>
+                          ) : p.status === "auto-rejected" ? (
+                            <span className="text-xs text-red-500">No action needed</span>
                           ) : (
                             <span className="text-xs text-gray-400">
                               {p.reviewedBy && `By ${p.reviewedBy}`}
