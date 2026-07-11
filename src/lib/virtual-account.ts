@@ -2,7 +2,11 @@ import type { VirtualAccount } from "./types";
 
 const VIRTUAL_ACCOUNTS_KEY = "invest_virtual_accounts";
 const DEPOSITS_KEY = "invest_synced_deposits";
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+
+function getBackendUrl(): string {
+  if (typeof window === "undefined") return "http://localhost:5000";
+  return process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+}
 
 export function getStoredVirtualAccount(userId: string): VirtualAccount | null {
   if (typeof window === "undefined") return null;
@@ -30,6 +34,7 @@ export async function generateVirtualAccount(
   bvn?: string
 ): Promise<{ success: boolean; account?: VirtualAccount; error?: string }> {
   try {
+    const BACKEND_URL = getBackendUrl();
     const res = await fetch(`${BACKEND_URL}/api/virtual-account`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -60,6 +65,7 @@ export async function generateVirtualAccount(
 
 export async function syncDeposits(userId: string): Promise<number> {
   try {
+    const BACKEND_URL = getBackendUrl();
     const res = await fetch(`${BACKEND_URL}/api/deposits/${userId}`);
     const data = await res.json();
 
