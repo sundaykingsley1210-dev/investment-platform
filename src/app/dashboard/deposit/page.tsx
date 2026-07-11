@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { getCashBalance, withdrawFunds, createPayment, getUserPayments } from "@/lib/store";
 import { validateCardNumber, detectCardType } from "@/lib/card-validation";
-import type { Payment } from "@/lib/types";
+import { getStoredVirtualAccount, generateVirtualAccount } from "@/lib/virtual-account";
+import type { Payment, VirtualAccount } from "@/lib/types";
 
 export default function DepositPage() {
-  const { user } = useAuth();
+  const { user, updateBvn } = useAuth();
   const [cash, setCash] = useState(0);
   const [amount, setAmount] = useState("");
   const [cardFirst4, setCardFirst4] = useState("");
@@ -16,6 +17,11 @@ export default function DepositPage() {
   const [success, setSuccess] = useState("");
   const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [bvnInput, setBvnInput] = useState("");
+  const [showBvnInput, setShowBvnInput] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const [cardType, setCardType] = useState("");
   const [cardValid, setCardValid] = useState<boolean | null>(null);
@@ -25,6 +31,7 @@ export default function DepositPage() {
     if (user) {
       setCash(getCashBalance(user.id));
       setPayments(getUserPayments(user.id));
+      setVirtualAccount(getStoredVirtualAccount(user.id));
     }
   };
 
@@ -48,6 +55,35 @@ export default function DepositPage() {
       setCardErrors([]);
     }
   }, [cardFirst4, cardLast4]);
+
+  const handleGenerateAccount = async () => {
+    if (!user) return;
+    if (!user.bvn && !bvnInput) {
+      setShowBvnInput(true);
+      return;
+    }
+    setGenerating(true);
+    setError("");
+    const bvn = user.bvn || bvnInput;
+    const result = await generateVirtualAccount(user.id, user.name, user.email, bvn);
+    if (result.success && result.account) {
+      setVirtualAccount(result.account);
+      if (bvnInput && !user.bvn) {
+        updateBvn(bvnInput);
+      }
+    } else {
+      setError(result.error || "Failed to generate account");
+    }
+    setGenerating(false);
+  };
+
+  const handleCopyAccount = () => {
+    if (virtualAccount) {
+      navigator.clipboard.writeText(virtualAccount.accountNumber);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const handlePayWithCard = () => {
     const val = parseFloat(amount);
@@ -119,13 +155,93 @@ export default function DepositPage() {
 
         {tab === "deposit" ? (
           <div className="space-y-4">
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center gap-3">
-              <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            {virtualAccount ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-emerald-800">Your Virtual Account</p>
+                    <p className="text-xs text-emerald-600">Transfer to this account to fund your wallet</p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 border border-emerald-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-gray-500">Account Number</p>
+                    <button
+                      onClick={handleCopyAccount}
+                      className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                    >
+                      {copied ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 font-mono tracking-wider">
+                    {virtualAccount.accountNumber}
+                  </p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-gray-500">Bank</p>
+                      <p className="text-sm font-medium text-gray-900">{virtualAccount.bankName}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Account Name</p>
+                      <p className="text-sm font-medium text-gray-900">{virtualAccount.accountName}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-emerald-600 mt-3 text-center">
+                  Send any amount to this account. Funds reflect instantly.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  <div>
+                    <p className="font-medium text-blue-800">Dedicated Virtual Account</p>
+                    <p className="text-xs text-blue-600">Get a personal account number for instant deposits</p>
+                  </div>
+                </div>
+
+                {showBvnInput && !user?.bvn && (
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Enter your BVN</label>
+                    <input
+                      type="text"
+                      maxLength={11}
+                      value={bvnInput}
+                      onChange={(e) => setBvnInput(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                      placeholder="11-digit BVN"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-lg tracking-wider font-mono"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Required to generate your virtual account</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleGenerateAccount}
+                  disabled={generating}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {generating ? "Generating..." : "Generate Virtual Account"}
+                </button>
+              </div>
+            )}
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center gap-3">
+              <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
               <div>
-                <p className="font-medium text-emerald-800">Pay with Debit Card</p>
-                <p className="text-xs text-emerald-600">Payment will be confirmed by admin</p>
+                <p className="font-medium text-gray-800">Pay with Debit Card</p>
+                <p className="text-xs text-gray-600">Payment will be confirmed by admin</p>
               </div>
             </div>
 

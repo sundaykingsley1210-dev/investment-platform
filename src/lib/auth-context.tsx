@@ -7,7 +7,8 @@ import { initializeNewUser } from "./store";
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  signup: (name: string, email: string, password: string, bvn?: string) => Promise<boolean>;
+  updateBvn: (bvn: string) => void;
   logout: () => void;
   isLoading: boolean;
 }
@@ -73,11 +74,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
-  const signup = async (name: string, email: string, password: string): Promise<boolean> => {
+  const signup = async (name: string, email: string, password: string, bvn?: string): Promise<boolean> => {
     const allUsers = { ...getSeedUsers(), ...getRegisteredUsers() };
     if (allUsers[email]) return false;
 
     const newUser: User = { id: Date.now().toString(), name, email, role: "user" };
+    if (bvn) newUser.bvn = bvn;
+
     allUsers[email] = { password, user: newUser };
     saveRegisteredUsers(allUsers);
 
@@ -87,13 +90,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  const updateBvn = (bvn: string) => {
+    if (!user) return;
+    const updated = { ...user, bvn };
+    setUser(updated);
+    localStorage.setItem("invest_user", JSON.stringify(updated));
+
+    const allUsers = getRegisteredUsers();
+    const email = user.email;
+    if (allUsers[email]) {
+      allUsers[email].user = updated;
+      saveRegisteredUsers(allUsers);
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem("invest_user");
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, signup, updateBvn, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

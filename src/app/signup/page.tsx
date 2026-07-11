@@ -9,6 +9,7 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [bvn, setBvn] = useState("");
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await signup(name, email, password);
+    await signup(name, email, password, bvn || undefined);
     setLoading(false);
     router.push("/dashboard");
   };
@@ -70,6 +71,22 @@ export default function SignupPage() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition"
                 placeholder="Create a password"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                BVN (Optional)
+              </label>
+              <input
+                type="text"
+                value={bvn}
+                onChange={(e) => setBvn(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition"
+                placeholder="11-digit BVN"
+                maxLength={11}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Required for virtual account generation. You can add this later.
+              </p>
             </div>
             <button
               type="submit"

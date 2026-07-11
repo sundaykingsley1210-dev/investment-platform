@@ -3,6 +3,16 @@ export interface User {
   name: string;
   email: string;
   role: "user" | "admin";
+  bvn?: string;
+}
+
+export interface VirtualAccount {
+  accountNumber: string;
+  accountName: string;
+  bankName: string;
+  bankCode?: string;
+  accountReference: string;
+  userId: string;
 }
 
 export interface Holding {
