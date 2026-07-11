@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { getCashBalance, withdrawFunds, createPayment, getUserPayments } from "@/lib/store";
 import { validateCardNumber, detectCardType } from "@/lib/card-validation";
-import { getStoredVirtualAccount, generateVirtualAccount } from "@/lib/virtual-account";
+import { getStoredVirtualAccount, generateVirtualAccount, syncDeposits } from "@/lib/virtual-account";
+import { depositFunds } from "@/lib/store";
 import type { Payment, VirtualAccount } from "@/lib/types";
 
 export default function DepositPage() {
@@ -36,6 +37,21 @@ export default function DepositPage() {
   };
 
   useEffect(() => { reload(); }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const sync = async () => {
+      const newAmount = await syncDeposits(user.id);
+      if (newAmount > 0) {
+        depositFunds(user.id, newAmount);
+        reload();
+        setSuccess(`₦${newAmount.toLocaleString()} deposit confirmed and credited!`);
+      }
+    };
+    sync();
+    const interval = setInterval(sync, 10000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     if (cardFirst4.length === 4) {

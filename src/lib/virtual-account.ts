@@ -1,6 +1,7 @@
 import type { VirtualAccount } from "./types";
 
 const VIRTUAL_ACCOUNTS_KEY = "invest_virtual_accounts";
+const DEPOSITS_KEY = "invest_synced_deposits";
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 export function getStoredVirtualAccount(userId: string): VirtualAccount | null {
@@ -54,5 +55,33 @@ export async function generateVirtualAccount(
     return { success: true, account };
   } catch (err) {
     return { success: false, error: "Cannot connect to backend server. Make sure it is running." };
+  }
+}
+
+export async function syncDeposits(userId: string): Promise<number> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/deposits/${userId}`);
+    const data = await res.json();
+
+    if (!data.success || !data.deposits) return 0;
+
+    const syncedRaw = localStorage.getItem(DEPOSITS_KEY);
+    const synced: Record<string, string[]> = syncedRaw ? JSON.parse(syncedRaw) : {};
+    const alreadySynced = synced[userId] || [];
+
+    let newTotal = 0;
+    for (const deposit of data.deposits) {
+      if (!alreadySynced.includes(deposit.id)) {
+        newTotal += deposit.amount;
+        alreadySynced.push(deposit.id);
+      }
+    }
+
+    synced[userId] = alreadySynced;
+    localStorage.setItem(DEPOSITS_KEY, JSON.stringify(synced));
+
+    return newTotal;
+  } catch {
+    return 0;
   }
 }
