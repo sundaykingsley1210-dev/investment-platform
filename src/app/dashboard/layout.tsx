@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { useAuth } from "@/lib/auth-context";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 
@@ -31,7 +31,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
-        <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+        <Header onMenuToggle={() => setSidebarOpen(true)} />
         <main className="flex-1 p-4 sm:p-6 overflow-auto">{children}</main>
       </div>
     </div>
@@ -39,9 +39,5 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthProvider>
-      <DashboardInner>{children}</DashboardInner>
-    </AuthProvider>
-  );
+  return <DashboardInner>{children}</DashboardInner>;
 }

@@ -41,7 +41,13 @@ export async function generateVirtualAccount(
       body: JSON.stringify({ userId, userName, userEmail, bvn }),
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return { success: false, error: "Invalid server response" };
+    }
 
     if (!res.ok) {
       return { success: false, error: data.error || "Failed to generate account" };
@@ -67,7 +73,13 @@ export async function syncDeposits(userId: string): Promise<number> {
   try {
     const BACKEND_URL = getBackendUrl();
     const res = await fetch(`${BACKEND_URL}/api/deposits/${userId}`);
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return 0;
+    }
 
     if (!data.success || !data.deposits) return 0;
 

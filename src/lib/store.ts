@@ -2,6 +2,11 @@ import type { Holding, Transaction, PortfolioSummary, ChartDataPoint, PriceAlert
 import { validateCardNumber, detectCardType } from "./card-validation";
 
 const STORAGE_PREFIX = "invest_";
+let idCounter = 0;
+
+function generateId(): string {
+  return `${Date.now()}-${++idCounter}`;
+}
 
 function getKey(userId: string, key: string) {
   return `${STORAGE_PREFIX}${userId}_${key}`;
@@ -64,7 +69,7 @@ export function buyStock(userId: string, symbol: string, name: string, sector: s
     existing.currentPrice = price;
   } else {
     holdings.push({
-      id: Date.now().toString(),
+      id: generateId(),
       symbol,
       name,
       shares,
@@ -77,7 +82,7 @@ export function buyStock(userId: string, symbol: string, name: string, sector: s
   }
 
   txs.unshift({
-    id: Date.now().toString(),
+    id: generateId(),
     type: "buy",
     symbol,
     shares,
@@ -109,7 +114,7 @@ export function sellStock(userId: string, symbol: string, shares: number, price:
   }
 
   txs.unshift({
-    id: Date.now().toString(),
+    id: generateId(),
     type: "sell",
     symbol,
     shares,
@@ -132,7 +137,7 @@ export function getPortfolioSummary(userId: string): PortfolioSummary {
   const totalGain = totalValue - totalCost;
   const totalGainPercent = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
   const dayChange = holdings.reduce((sum, h) => sum + h.shares * h.change, 0);
-  const dayChangePercent = totalValue - dayChange > 0 ? (dayChange / (totalValue - dayChange)) * 100 : 0;
+  const dayChangePercent = Math.abs(totalValue - dayChange) > 0.01 ? (dayChange / (totalValue - dayChange)) * 100 : 0;
 
   return {
     totalValue,
@@ -171,7 +176,7 @@ export function depositFunds(userId: string, amount: number): boolean {
   const today = new Date().toISOString().split("T")[0];
 
   txs.unshift({
-    id: Date.now().toString(),
+    id: generateId(),
     type: "deposit",
     symbol: "CASH",
     shares: 1,
@@ -194,7 +199,7 @@ export function withdrawFunds(userId: string, amount: number): boolean {
   const today = new Date().toISOString().split("T")[0];
 
   txs.unshift({
-    id: Date.now().toString(),
+    id: generateId(),
     type: "withdrawal",
     symbol: "CASH",
     shares: 1,
@@ -221,7 +226,7 @@ export function saveAlerts(userId: string, alerts: PriceAlert[]) {
 export function createAlert(userId: string, symbol: string, name: string, targetPrice: number, direction: "above" | "below"): PriceAlert {
   const alerts = getAlerts(userId);
   const newAlert: PriceAlert = {
-    id: Date.now().toString(),
+    id: generateId(),
     symbol,
     name,
     targetPrice,
@@ -274,7 +279,7 @@ export function addReferral(userId: string, referredEmail: string): Referral | n
   if (exists) return null;
 
   const newReferral: Referral = {
-    id: Date.now().toString(),
+    id: generateId(),
     code: getReferralCode(userId),
     referredBy: userId,
     referredEmail,
@@ -311,7 +316,7 @@ export function createPayment(userId: string, userName: string, userEmail: strin
 
   if (!validation.isValid) {
     const autoRejected: Payment = {
-      id: Date.now().toString(),
+      id: generateId(),
       userId,
       userName,
       userEmail,
@@ -329,7 +334,7 @@ export function createPayment(userId: string, userName: string, userEmail: strin
   }
 
   const newPayment: Payment = {
-    id: Date.now().toString(),
+    id: generateId(),
     userId,
     userName,
     userEmail,
@@ -363,7 +368,7 @@ export function approvePayment(paymentId: string, adminName: string): boolean {
 
   const txs = getTransactions(payment.userId);
   txs.unshift({
-    id: Date.now().toString(),
+    id: generateId(),
     type: "deposit",
     symbol: "CASH",
     shares: 1,

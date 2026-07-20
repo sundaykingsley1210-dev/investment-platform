@@ -11,15 +11,25 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [bvn, setBvn] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const { signup } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
     setLoading(true);
-    await signup(name, email, password, bvn || undefined);
+    const ok = await signup(name, email, password, bvn || undefined);
     setLoading(false);
-    router.push("/dashboard");
+    if (ok) {
+      router.push("/dashboard");
+    } else {
+      setError("An account with this email already exists");
+    }
   };
 
   return (
@@ -39,6 +49,11 @@ export default function SignupPage() {
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Get started</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
               <input

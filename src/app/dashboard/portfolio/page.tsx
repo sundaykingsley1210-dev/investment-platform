@@ -37,7 +37,7 @@ export default function PortfolioPage() {
     const ok = sellStock(user.id, sellModal.symbol, sellShares, sellModal.price);
     if (ok) {
       reload();
-      setSellSuccess(`Sold ${sellShares} share${sellShares > 1 ? "s" : ""} of ${sellModal.symbol}`);
+      setSellSuccess(`Sold ₦{sellShares} share₦{sellShares > 1 ? "s" : ""} of ₦{sellModal.symbol}`);
       setSellError("");
     } else {
       setSellError("Transaction failed");
@@ -54,16 +54,16 @@ export default function PortfolioPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm text-gray-500">Total Value</p>
-          <p className="text-2xl font-bold text-gray-900">${totalValue.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+          <p className="text-2xl font-bold text-gray-900">₦{totalValue.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm text-gray-500">Total Cost</p>
-          <p className="text-2xl font-bold text-gray-900">${totalCost.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+          <p className="text-2xl font-bold text-gray-900">₦{totalCost.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm text-gray-500">Total Gain/Loss</p>
-          <p className={`text-2xl font-bold ${totalGain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-            {totalGain >= 0 ? "+" : ""}${totalGain.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+          <p className={`text-2xl font-bold ₦{totalGain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+            {totalGain >= 0 ? "+" : ""}₦{totalGain.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </p>
         </div>
       </div>
@@ -112,14 +112,14 @@ export default function PortfolioPage() {
                       </td>
                       <td className="px-6 py-4 text-gray-500 hidden sm:table-cell">{h.sector}</td>
                       <td className="px-6 py-4 text-right text-gray-900">{h.shares}</td>
-                      <td className="px-6 py-4 text-right text-gray-900">${h.avgCost.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-right text-gray-900">${h.currentPrice.toFixed(2)}</td>
-                      <td className={`px-6 py-4 text-right font-medium ${gain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                        {gain >= 0 ? "+" : ""}${gain.toFixed(2)}
+                      <td className="px-6 py-4 text-right text-gray-900">₦{h.avgCost.toFixed(2)}</td>
+                      <td className="px-6 py-4 text-right text-gray-900">₦{h.currentPrice.toFixed(2)}</td>
+                      <td className={`px-6 py-4 text-right font-medium ₦{gain >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                        {gain >= 0 ? "+" : ""}₦{gain.toFixed(2)}
                         <span className="text-xs ml-1">({gainPct >= 0 ? "+" : ""}{gainPct.toFixed(1)}%)</span>
                       </td>
                       <td className="px-6 py-4 text-right font-medium text-gray-900">
-                        ${(h.shares * h.currentPrice).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        ₦{(h.shares * h.currentPrice).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button onClick={() => openSell(h)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors">
@@ -149,7 +149,7 @@ export default function PortfolioPage() {
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-sm text-gray-500">{sellModal.name}</p>
-                <p className="text-2xl font-bold text-gray-900">${sellModal.price.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-gray-900">₦{sellModal.price.toFixed(2)}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Shares to Sell (you own {sellModal.shares})</label>
@@ -162,7 +162,7 @@ export default function PortfolioPage() {
               </div>
               <div className="bg-gray-50 rounded-lg p-4 flex justify-between items-center">
                 <span className="text-gray-600">You&apos;ll Receive</span>
-                <span className="text-xl font-bold text-emerald-600">${(sellShares * sellModal.price).toFixed(2)}</span>
+                <span className="text-xl font-bold text-emerald-600">₦{(sellShares * sellModal.price).toFixed(2)}</span>
               </div>
               {sellError && <p className="text-sm text-red-600">{sellError}</p>}
               {sellSuccess && <p className="text-sm text-emerald-600 font-medium">{sellSuccess}</p>}

@@ -24,7 +24,7 @@ export default function StatCard({ title, value, change, changePercent, subtitle
             <svg className={`w-4 h-4 mr-0.5 ${isPositive ? "" : "rotate-180"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
             </svg>
-            {isPositive ? "+" : ""}{change !== undefined ? `$${Math.abs(change).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
+            {isPositive ? "+" : ""}{change !== undefined ? `₦${Math.abs(change).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
             {changePercent !== undefined && (
               <span className="ml-1">({isPositive ? "+" : ""}{changePercent.toFixed(2)}%)</span>
             )}
