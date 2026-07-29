@@ -130,6 +130,14 @@ export default function DepositPage() {
     const val = parseFloat(amount);
     if (!val || val < 5000) { setError("Minimum withdrawal is ₦5,000"); return; }
     if (val > cash) { setError("Insufficient balance"); return; }
+
+    const now = new Date();
+    const hour = now.getHours();
+    if (hour < 10 || hour >= 18) {
+      setError("Not withdrawal period. Withdrawals are only allowed between 10:00 AM and 6:00 PM");
+      return;
+    }
+
     const ok = withdrawFunds(user!.id, val);
     if (ok) {
       reload();
@@ -380,6 +388,9 @@ export default function DepositPage() {
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
             {success && <p className="text-sm text-emerald-600 font-medium">{success}</p>}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-sm text-amber-700"><span className="font-medium">Note:</span> Withdrawals are only processed between 10:00 AM and 6:00 PM</p>
+            </div>
             <button
               onClick={handleWithdraw}
               className="w-full bg-red-600 py-3 rounded-lg font-medium text-white transition-colors hover:bg-red-700"
