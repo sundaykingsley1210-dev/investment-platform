@@ -2,20 +2,26 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { getHoldings, getTransactions, getAllPayments, approvePayment, rejectPayment } from "@/lib/store";
+import { getHoldings, getTransactions, getAllPayments, approvePayment, rejectPayment, sendMessage, getAllUsers } from "@/lib/store";
 import type { Payment } from "@/lib/types";
 
 export default function AdminPage() {
   const { user } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected" | "auto-rejected">("all");
+  const [allUsers, setAllUsers] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [msgRecipient, setMsgRecipient] = useState("");
+  const [msgSubject, setMsgSubject] = useState("");
+  const [msgBody, setMsgBody] = useState("");
+  const [msgSuccess, setMsgSuccess] = useState("");
+  const [msgError, setMsgError] = useState("");
 
   const holdings = user ? getHoldings(user.id) : [];
   const transactions = user ? getTransactions(user.id) : [];
   const totalAUM = holdings.reduce((s, h) => s + h.shares * h.currentPrice, 0) + 5000;
 
   const reload = () => { setPayments(getAllPayments()); };
-  useEffect(() => { reload(); }, []);
+  useEffect(() => { reload(); setAllUsers(getAllUsers()); }, []);
 
   const filtered = filter === "all" ? payments : payments.filter((p) => p.status === filter);
   const pendingCount = payments.filter((p) => p.status === "pending").length;
@@ -29,6 +35,25 @@ export default function AdminPage() {
   const handleReject = (id: string) => {
     rejectPayment(id, user!.name);
     reload();
+  };
+
+  const handleSendMessage = () => {
+    setMsgError("");
+    setMsgSuccess("");
+    if (!msgRecipient || !msgSubject.trim() || !msgBody.trim()) {
+      setMsgError("Please fill in all fields");
+      return;
+    }
+    const recipient = allUsers.find((u) => u.id === msgRecipient);
+    if (!recipient) {
+      setMsgError("Recipient not found");
+      return;
+    }
+    sendMessage(user!.id, user!.name, msgRecipient, msgSubject.trim(), msgBody.trim());
+    setMsgSuccess(`Message sent to ${recipient.name}. It will expire in 12 hours.`);
+    setMsgRecipient("");
+    setMsgSubject("");
+    setMsgBody("");
   };
 
   return (
@@ -200,7 +225,55 @@ export default function AdminPage() {
                               >
                                 Reject
                               </button>
-                            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Send Message to User</h3>
+            <p className="text-sm text-gray-500 mb-4">Messages expire automatically after 12 hours</p>
+            {msgError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">{msgError}</div>}
+            {msgSuccess && <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm mb-4">{msgSuccess}</div>}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Recipient</label>
+                <select
+                  value={msgRecipient}
+                  onChange={(e) => setMsgRecipient(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                >
+                  <option value="">Select a user</option>
+                  {allUsers.filter((u) => u.id !== user?.id).map((u) => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                <input
+                  type="text"
+                  value={msgSubject}
+                  onChange={(e) => setMsgSubject(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                  placeholder="Message subject"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                <textarea
+                  value={msgBody}
+                  onChange={(e) => setMsgBody(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none resize-none"
+                  placeholder="Type your message here..."
+                />
+              </div>
+              <button
+                onClick={handleSendMessage}
+                className="bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
+              >
+                Send Message
+              </button>
+            </div>
+          </div>
                           ) : p.status === "auto-rejected" ? (
                             <span className="text-xs text-red-500">No action needed</span>
                           ) : (

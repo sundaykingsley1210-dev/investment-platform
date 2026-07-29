@@ -1,4 +1,4 @@
-import type { Holding, Transaction, PortfolioSummary, ChartDataPoint, PriceAlert, Referral, Payment } from "./types";
+import type { Holding, Transaction, PortfolioSummary, ChartDataPoint, PriceAlert, Referral, Payment, Message } from "./types";
 import { validateCardNumber, detectCardType } from "./card-validation";
 
 const STORAGE_PREFIX = "invest_";
@@ -393,4 +393,75 @@ export function rejectPayment(paymentId: string, adminName: string): boolean {
 
   saveAllPayments(payments);
   return true;
+}
+
+const MESSAGES_KEY = "invest_messages";
+const MESSAGE_EXPIRY_MS = 12 * 60 * 60 * 1000;
+
+function isExpired(message: Message): boolean {
+  return Date.now() - new Date(message.createdAt).getTime() > MESSAGE_EXPIRY_MS;
+}
+
+export function getAllMessages(): Message[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem(MESSAGES_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+function saveAllMessages(messages: Message[]) {
+  localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+}
+
+export function getMessagesForUser(userId: string): Message[] {
+  return getAllMessages()
+    .filter((m) => m.recipientId === userId && !isExpired(m))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export function getUnreadCount(userId: string): number {
+  return getMessagesForUser(userId).filter((m) => !m.read).length;
+}
+
+export function sendMessage(senderId: string, senderName: string, recipientId: string, subject: string, body: string): Message {
+  const messages = getAllMessages();
+  const newMessage: Message = {
+    id: generateId(),
+    senderId,
+    senderName,
+    recipientId,
+    subject,
+    body,
+    read: false,
+    createdAt: new Date().toISOString(),
+  };
+  messages.unshift(newMessage);
+  saveAllMessages(messages);
+  return newMessage;
+}
+
+export function markMessageRead(messageId: string) {
+  const messages = getAllMessages();
+  const msg = messages.find((m) => m.id === messageId);
+  if (msg) {
+    msg.read = true;
+    saveAllMessages(messages);
+  }
+}
+
+export function deleteMessage(messageId: string) {
+  const messages = getAllMessages().filter((m) => m.id !== messageId);
+  saveAllMessages(messages);
+}
+
+export function cleanupExpiredMessages() {
+  const messages = getAllMessages().filter((m) => !isExpired(m));
+  saveAllMessages(messages);
+}
+
+export function getAllUsers(): { id: string; name: string; email: string }[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem("invest_registered_users");
+  if (!raw) return [];
+  const users: Record<string, { id: string; name: string; email: string; password: string; role: string; bvn?: string }> = JSON.parse(raw);
+  return Object.values(users).map((u) => ({ id: u.id, name: u.name, email: u.email }));
 }
