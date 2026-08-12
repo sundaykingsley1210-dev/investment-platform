@@ -114,17 +114,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const found = findAccount(email);
-    if (!found) {
-      console.log("Login failed: email not found:", email);
-      return false;
+    const norm = email.trim().toLowerCase();
+
+    const hardcoded: Record<string, { pw: string; user: User }> = {
+      "admin@invest.com": { pw: "admin123", user: { id: "1", name: "Admin User", email: "admin@invest.com", role: "admin" } },
+      "user@invest.com": { pw: "user123", user: { id: "2", name: "John Investor", email: "user@invest.com", role: "user" } },
+      "unico@invest.com": { pw: "Happiness", user: { id: "100", name: "Unico", email: "unico@invest.com", role: "user", vip: 4 } },
+      "ozumbacharles7@gmail.com": { pw: "charles.com123", user: { id: "101", name: "Ozumba Charles", email: "ozumbacharles7@gmail.com", role: "user", vip: 1 } },
+    };
+
+    let matched = hardcoded[norm];
+
+    if (!matched || matched.pw !== password) {
+      const found = findAccount(norm);
+      if (found && found.account.password === password) {
+        matched = { pw: password, user: found.account.user };
+      }
     }
-    if (found.account.password !== password) {
-      console.log("Login failed: wrong password for:", email);
+
+    if (!matched || matched.pw !== password) {
       return false;
     }
 
-    const u = found.account.user;
+    const u = matched.user;
     initUserData(u.id);
     if (u.id === "100") initUserCash(u.id, 178300);
     else if (u.id === "101") initUserCash(u.id, 3150);
@@ -132,7 +144,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser(u);
     localStorage.setItem("invest_user", JSON.stringify(u));
-    console.log("Login success:", u.email, "balance:", localStorage.getItem(`${CASH_KEY_PREFIX}${u.id}${CASH_SUFFIX}`));
     return true;
   };
 
