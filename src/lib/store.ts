@@ -467,6 +467,36 @@ export function getAllUsers(): { id: string; name: string; email: string }[] {
   return Object.values(users).map((u) => ({ id: u.user.id, name: u.user.name, email: u.user.email }));
 }
 
+export interface AdminUserInfo {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  vip: number;
+  cash: number;
+  holdingsCount: number;
+  transactionsCount: number;
+  bvn?: string;
+}
+
+export function getAllUsersDetailed(): AdminUserInfo[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem("invest_registered_users");
+  if (!raw) return [];
+  const users: Record<string, { password: string; user: { id: string; name: string; email: string; role: string; bvn?: string; vip?: number } }> = JSON.parse(raw);
+  return Object.values(users).map((u) => ({
+    id: u.user.id,
+    name: u.user.name,
+    email: u.user.email,
+    role: u.user.role,
+    vip: u.user.vip || 0,
+    cash: getCashBalance(u.user.id),
+    holdingsCount: getHoldings(u.user.id).length,
+    transactionsCount: getTransactions(u.user.id).length,
+    bvn: u.user.bvn,
+  }));
+}
+
 const TASKS_KEY = "invest_tasks";
 
 export function getTasksForUser(userId: string): Task[] {
