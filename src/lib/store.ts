@@ -462,6 +462,6 @@ export function getAllUsers(): { id: string; name: string; email: string }[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem("invest_registered_users");
   if (!raw) return [];
-  const users: Record<string, { id: string; name: string; email: string; password: string; role: string; bvn?: string }> = JSON.parse(raw);
-  return Object.values(users).map((u) => ({ id: u.id, name: u.name, email: u.email }));
+  const users: Record<string, { password: string; user: { id: string; name: string; email: string; role: string; bvn?: string } }> = JSON.parse(raw);
+  return Object.values(users).map((u) => ({ id: u.user.id, name: u.user.name, email: u.user.email }));
 }

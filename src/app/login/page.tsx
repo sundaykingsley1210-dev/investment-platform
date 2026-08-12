@@ -7,15 +7,19 @@ import { useAuth } from "@/lib/auth-context";
 
 const USERS_KEY = "invest_registered_users";
 
-function getRegisteredEmails(): string[] {
-  if (typeof window === "undefined") return [];
+interface StoredUser {
+  password: string;
+  user: { id: string; name: string; email: string; role: string };
+}
+
+function getRegisteredUsers(): Record<string, StoredUser> {
+  if (typeof window === "undefined") return {};
   const raw = localStorage.getItem(USERS_KEY);
-  if (!raw) return [];
+  if (!raw) return {};
   try {
-    const users = JSON.parse(raw);
-    return Object.keys(users);
+    return JSON.parse(raw);
   } catch {
-    return [];
+    return {};
   }
 }
 
@@ -24,14 +28,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [registeredEmails, setRegisteredEmails] = useState<string[]>([]);
-  const [showAccounts, setShowAccounts] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugInfo, setDebugInfo] = useState("");
   const { login } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    setRegisteredEmails(getRegisteredEmails());
-  }, []);
+  const runDebug = () => {
+    const users = getRegisteredUsers();
+    const keys = Object.keys(users);
+    if (keys.length === 0) {
+      setDebugInfo("NO ACCOUNTS FOUND IN LOCALSTORAGE\n\nThis means no one has registered on this browser yet, or localStorage was cleared.");
+    } else {
+      const info = keys.map((key) => {
+        const u = users[key];
+        return `Email: ${key}\n  Name: ${u.user.name}\n  ID: ${u.user.id}`;
+      }).join("\n\n");
+      setDebugInfo(`REGISTERED ACCOUNTS (${keys.length}):\n\n${info}`);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,14 +56,19 @@ export default function LoginPage() {
     if (ok) {
       router.push("/dashboard");
     } else {
-      const emails = getRegisteredEmails();
-      setRegisteredEmails(emails);
-      if (emails.length === 0) {
-        setError("No accounts found on this browser. Please sign up first.");
-      } else if (!emails.includes(email)) {
-        setError(`Email "${email}" not found. Registered emails: ${emails.join(", ")}`);
+      const users = getRegisteredUsers();
+      const keys = Object.keys(users);
+      const normalizedInput = email.trim().toLowerCase();
+      const found = keys.find((k) => k.toLowerCase() === normalizedInput);
+      
+      if (keys.length === 0) {
+        setError("No accounts exist on this browser. Please sign up first.");
+      } else if (!found) {
+        setError(`Email "${email}" not found. Click "Show Accounts" below to see registered emails.`);
+      } else if (users[found].password !== password) {
+        setError(`Email found but wrong password. Your password is stored as: "${users[found].password}"`);
       } else {
-        setError("Wrong password. Please try again.");
+        setError("Login failed for unknown reason.");
       }
     }
   };
@@ -71,7 +90,7 @@ export default function LoginPage() {
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Welcome back</h2>
 
           {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>
+            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm whitespace-pre-wrap">{error}</div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -106,44 +125,34 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {registeredEmails.length > 0 && (
-            <div className="mt-4">
-              <button
-                onClick={() => setShowAccounts(!showAccounts)}
-                className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-              >
-                {showAccounts ? "Hide" : "Show"} registered accounts on this browser ({registeredEmails.length})
-              </button>
-              {showAccounts && (
-                <div className="mt-2 bg-gray-50 rounded-lg p-3 space-y-1">
-                  {registeredEmails.map((e) => (
-                    <button
-                      key={e}
-                      onClick={() => { setEmail(e); setError(""); }}
-                      className="w-full text-left text-xs text-gray-700 hover:text-emerald-600 px-2 py-1 rounded hover:bg-gray-100"
-                    >
-                      {e}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <button
+              onClick={() => { setShowDebug(!showDebug); if (!showDebug) runDebug(); }}
+              className="w-full text-xs text-gray-500 hover:text-gray-700 font-medium py-2"
+            >
+              {showDebug ? "Hide Debug Info" : "Show Debug Info"}
+            </button>
+            {showDebug && debugInfo && (
+              <pre className="mt-2 bg-gray-100 rounded-lg p-3 text-xs text-gray-700 overflow-auto max-h-48 whitespace-pre-wrap">
+                {debugInfo}
+              </pre>
+            )}
+          </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="mt-4 pt-4 border-t border-gray-200">
             <p className="text-xs text-gray-500 text-center mb-3">Demo accounts:</p>
             <div className="space-y-2 text-xs">
               <button
                 onClick={() => { setEmail("admin@invest.com"); setPassword("admin123"); setError(""); }}
                 className="w-full px-3 py-2.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-gray-700 text-left"
               >
-                Admin: admin@invest.com
+                Admin: admin@invest.com / admin123
               </button>
               <button
                 onClick={() => { setEmail("user@invest.com"); setPassword("user123"); setError(""); }}
                 className="w-full px-3 py-2.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-gray-700 text-left"
               >
-                User: user@invest.com
+                User: user@invest.com / user123
               </button>
             </div>
           </div>
