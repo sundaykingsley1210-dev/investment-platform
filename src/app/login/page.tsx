@@ -1,17 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+
+const USERS_KEY = "invest_registered_users";
+
+function getRegisteredEmails(): string[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem(USERS_KEY);
+  if (!raw) return [];
+  try {
+    const users = JSON.parse(raw);
+    return Object.keys(users);
+  } catch {
+    return [];
+  }
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [registeredEmails, setRegisteredEmails] = useState<string[]>([]);
+  const [showAccounts, setShowAccounts] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    setRegisteredEmails(getRegisteredEmails());
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +42,15 @@ export default function LoginPage() {
     if (ok) {
       router.push("/dashboard");
     } else {
-      setError("Invalid email or password");
+      const emails = getRegisteredEmails();
+      setRegisteredEmails(emails);
+      if (emails.length === 0) {
+        setError("No accounts found on this browser. Please sign up first.");
+      } else if (!emails.includes(email)) {
+        setError(`Email "${email}" not found. Registered emails: ${emails.join(", ")}`);
+      } else {
+        setError("Wrong password. Please try again.");
+      }
     }
   };
 
@@ -52,7 +80,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setError(""); }}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition"
                 placeholder="you@example.com"
@@ -63,7 +91,7 @@ export default function LoginPage() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => { setPassword(e.target.value); setError(""); }}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition"
                 placeholder="Enter your password"
@@ -78,17 +106,41 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {registeredEmails.length > 0 && (
+            <div className="mt-4">
+              <button
+                onClick={() => setShowAccounts(!showAccounts)}
+                className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+              >
+                {showAccounts ? "Hide" : "Show"} registered accounts on this browser ({registeredEmails.length})
+              </button>
+              {showAccounts && (
+                <div className="mt-2 bg-gray-50 rounded-lg p-3 space-y-1">
+                  {registeredEmails.map((e) => (
+                    <button
+                      key={e}
+                      onClick={() => { setEmail(e); setError(""); }}
+                      className="w-full text-left text-xs text-gray-700 hover:text-emerald-600 px-2 py-1 rounded hover:bg-gray-100"
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-xs text-gray-500 text-center mb-3">Demo accounts:</p>
             <div className="space-y-2 text-xs">
               <button
-                onClick={() => { setEmail("admin@invest.com"); setPassword("admin123"); }}
+                onClick={() => { setEmail("admin@invest.com"); setPassword("admin123"); setError(""); }}
                 className="w-full px-3 py-2.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-gray-700 text-left"
               >
                 Admin: admin@invest.com
               </button>
               <button
-                onClick={() => { setEmail("user@invest.com"); setPassword("user123"); }}
+                onClick={() => { setEmail("user@invest.com"); setPassword("user123"); setError(""); }}
                 className="w-full px-3 py-2.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-gray-700 text-left"
               >
                 User: user@invest.com
