@@ -55,7 +55,7 @@ const SEED_ACCOUNTS: Record<string, StoredUser> = {
     user: { id: "1", name: "Admin User", email: "admin@invest.com", role: "admin" },
   },
   "sundaykingsley1210@gmail.com": {
-    password: "admin123",
+    password: "123456",
     user: { id: "0", name: "Sunday Kingsley", email: "sundaykingsley1210@gmail.com", role: "admin" },
   },
   "user@invest.com": {
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const hardcoded: Record<string, { pw: string; user: User }> = {
       "admin@invest.com": { pw: "admin123", user: { id: "1", name: "Admin User", email: "admin@invest.com", role: "admin" } },
-      "sundaykingsley1210@gmail.com": { pw: "admin123", user: { id: "0", name: "Sunday Kingsley", email: "sundaykingsley1210@gmail.com", role: "admin" } },
+      "sundaykingsley1210@gmail.com": { pw: "123456", user: { id: "0", name: "Sunday Kingsley", email: "sundaykingsley1210@gmail.com", role: "admin" } },
       "user@invest.com": { pw: "user123", user: { id: "2", name: "John Investor", email: "user@invest.com", role: "user" } },
       "unico@invest.com": { pw: "Happiness", user: { id: "100", name: "Unico", email: "unico@invest.com", role: "user", vip: 4 } },
       "ozumbacharles7@gmail.com": { pw: "charles.com123", user: { id: "101", name: "Ozumba Charles", email: "ozumbacharles7@gmail.com", role: "user", vip: 1 } },
