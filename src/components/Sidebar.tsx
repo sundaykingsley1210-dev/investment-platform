@@ -26,9 +26,12 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+const ADMIN_EMAILS = ["admin@invest.com", "sundaykingsley1210@gmail.com"];
+
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const isAdmin = user?.role === "admin" || (user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
 
   const navContent = (
     <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -49,7 +52,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           {item.label}
         </Link>
       ))}
-      {user?.role === "admin" && (
+      {isAdmin && (
         <>
           <div className="border-t border-gray-800 my-3" />
           <p className="px-4 py-2 text-xs text-gray-500 uppercase tracking-wider">Admin</p>

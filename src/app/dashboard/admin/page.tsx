@@ -71,7 +71,10 @@ export default function AdminPage() {
     setMsgBody("");
   };
 
-  if (user?.role !== "admin") {
+  const ADMIN_EMAILS = ["admin@invest.com", "sundaykingsley1210@gmail.com"];
+  const isAdmin = user?.role === "admin" || (user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
+
+  if (!isAdmin) {
     return (
       <div className="space-y-6">
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">

@@ -24,7 +24,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (ok) {
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } else {
       setError("Invalid email or password. Please check and try again.");
     }
