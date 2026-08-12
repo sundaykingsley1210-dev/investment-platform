@@ -225,6 +225,21 @@ export default function AdminPage() {
                               >
                                 Reject
                               </button>
+                            </div>
+                          ) : p.status === "auto-rejected" ? (
+                            <span className="text-xs text-red-500">No action needed</span>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              {p.reviewedBy && `By ${p.reviewedBy}`}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -273,21 +288,6 @@ export default function AdminPage() {
                 Send Message
               </button>
             </div>
-          </div>
-                          ) : p.status === "auto-rejected" ? (
-                            <span className="text-xs text-red-500">No action needed</span>
-                          ) : (
-                            <span className="text-xs text-gray-400">
-                              {p.reviewedBy && `By ${p.reviewedBy}`}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
         </>
       )}

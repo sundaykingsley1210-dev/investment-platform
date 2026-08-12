@@ -490,7 +490,7 @@ export function completeTask(userId: string, taskId: string): boolean {
   if (!raw) return false;
   const all: Task[] = JSON.parse(raw);
   const task = all.find((t) => t.id === taskId && t.userId === userId);
-  if (!task || task.status !== "completed") return false;
+  if (!task || task.status !== "available") return false;
 
   const cash = getCashBalance(userId);
   saveCashBalance(userId, cash + task.reward);
@@ -507,6 +507,8 @@ export function completeTask(userId: string, taskId: string): boolean {
     date: today,
   });
   saveTransactions(userId, txs);
+  task.status = "completed";
+  localStorage.setItem(TASKS_KEY, JSON.stringify(all));
   return true;
 }
 
