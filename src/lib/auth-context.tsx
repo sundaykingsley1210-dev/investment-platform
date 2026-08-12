@@ -47,6 +47,14 @@ function getSeedUsers(): Record<string, StoredUser> {
       password: "user123",
       user: { id: "2", name: "John Investor", email: "user@invest.com", role: "user" },
     },
+    "unico@invest.com": {
+      password: "unico123",
+      user: { id: "100", name: "Unico", email: "unico@invest.com", role: "user" },
+    },
+    "ozumba@invest.com": {
+      password: "ozumba123",
+      user: { id: "101", name: "Ozumba", email: "ozumba@invest.com", role: "user" },
+    },
   };
 }
 
