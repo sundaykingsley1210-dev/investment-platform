@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import type { User } from "./types";
-import { initializeNewUser } from "./store";
 
 interface AuthContextType {
   user: User | null;
@@ -16,60 +15,83 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const USERS_KEY = "invest_registered_users";
+const CASH_KEY_PREFIX = "invest_";
+const HOLDINGS_SUFFIX = "_holdings";
+const TXS_SUFFIX = "_transactions";
+const CASH_SUFFIX = "_cash";
 
 interface StoredUser {
   password: string;
   user: User;
 }
 
-function getUsersFromStorage(): Record<string, StoredUser> {
-  if (typeof window === "undefined") return {};
+function readJSON(key: string) {
+  if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(USERS_KEY);
-    if (!raw) return {};
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
     return JSON.parse(raw);
   } catch {
-    return {};
+    return null;
   }
+}
+
+function writeJSON(key: string, value: unknown) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function getUsersFromStorage(): Record<string, StoredUser> {
+  return readJSON(USERS_KEY) || {};
 }
 
 function saveUsersToStorage(users: Record<string, StoredUser>) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  writeJSON(USERS_KEY, users);
 }
 
-function getAllAccounts(): Record<string, StoredUser> {
-  const seed: Record<string, StoredUser> = {
-    "admin@invest.com": {
-      password: "admin123",
-      user: { id: "1", name: "Admin User", email: "admin@invest.com", role: "admin" },
-    },
-    "user@invest.com": {
-      password: "user123",
-      user: { id: "2", name: "John Investor", email: "user@invest.com", role: "user" },
-    },
-    "unico@invest.com": {
-      password: "Happiness",
-      user: { id: "100", name: "Unico", email: "unico@invest.com", role: "user", vip: 4 },
-    },
-    "ozumbacharles7@gmail.com": {
-      password: "charles.com123",
-      user: { id: "101", name: "Ozumba Charles", email: "ozumbacharles7@gmail.com", role: "user", vip: 1 },
-    },
-  };
-  const stored = getUsersFromStorage();
-  return { ...seed, ...stored };
-}
+const SEED_ACCOUNTS: Record<string, StoredUser> = {
+  "admin@invest.com": {
+    password: "admin123",
+    user: { id: "1", name: "Admin User", email: "admin@invest.com", role: "admin" },
+  },
+  "user@invest.com": {
+    password: "user123",
+    user: { id: "2", name: "John Investor", email: "user@invest.com", role: "user" },
+  },
+  "unico@invest.com": {
+    password: "Happiness",
+    user: { id: "100", name: "Unico", email: "unico@invest.com", role: "user", vip: 4 },
+  },
+  "ozumbacharles7@gmail.com": {
+    password: "charles.com123",
+    user: { id: "101", name: "Ozumba Charles", email: "ozumbacharles7@gmail.com", role: "user", vip: 1 },
+  },
+};
 
-function findUserByEmail(email: string): { key: string; entry: StoredUser } | null {
-  const all = getAllAccounts();
-  const normalized = email.trim().toLowerCase();
+function findAccount(email: string): { key: string; account: StoredUser } | null {
+  const all = { ...SEED_ACCOUNTS, ...getUsersFromStorage() };
+  const norm = email.trim().toLowerCase();
   for (const key of Object.keys(all)) {
-    if (key.toLowerCase() === normalized) {
-      return { key, entry: all[key] };
+    if (key.toLowerCase() === norm) {
+      return { key, account: all[key] };
     }
   }
   return null;
+}
+
+function initUserCash(userId: string, amount: number) {
+  const cashKey = `${CASH_KEY_PREFIX}${userId}${CASH_SUFFIX}`;
+  const existing = localStorage.getItem(cashKey);
+  if (existing === null) {
+    writeJSON(cashKey, amount);
+  }
+}
+
+function initUserData(userId: string) {
+  const holdingsKey = `${CASH_KEY_PREFIX}${userId}${HOLDINGS_SUFFIX}`;
+  const txsKey = `${CASH_KEY_PREFIX}${userId}${TXS_SUFFIX}`;
+  if (!localStorage.getItem(holdingsKey)) writeJSON(holdingsKey, []);
+  if (!localStorage.getItem(txsKey)) writeJSON(txsKey, []);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -92,30 +114,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const found = findUserByEmail(email);
-    if (!found) return false;
-    if (found.entry.password !== password) return false;
+    const found = findAccount(email);
+    if (!found) {
+      console.log("Login failed: email not found:", email);
+      return false;
+    }
+    if (found.account.password !== password) {
+      console.log("Login failed: wrong password for:", email);
+      return false;
+    }
 
-    const initialBalance = found.entry.user.id === "100" ? 178300 : found.entry.user.id === "101" ? 3150 : undefined;
-    initializeNewUser(found.entry.user.id, initialBalance);
-    setUser(found.entry.user);
-    localStorage.setItem("invest_user", JSON.stringify(found.entry.user));
+    const u = found.account.user;
+    initUserData(u.id);
+    if (u.id === "100") initUserCash(u.id, 178300);
+    else if (u.id === "101") initUserCash(u.id, 3150);
+    else initUserCash(u.id, 5000);
+
+    setUser(u);
+    localStorage.setItem("invest_user", JSON.stringify(u));
+    console.log("Login success:", u.email, "balance:", localStorage.getItem(`${CASH_KEY_PREFIX}${u.id}${CASH_SUFFIX}`));
     return true;
   };
 
   const signup = async (name: string, email: string, password: string, bvn?: string): Promise<boolean> => {
-    const found = findUserByEmail(email);
+    const found = findAccount(email);
     if (found) return false;
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const newUser: User = { id: Date.now().toString(), name, email: normalizedEmail, role: "user" };
+    const norm = email.trim().toLowerCase();
+    const newUser: User = { id: Date.now().toString(), name, email: norm, role: "user" };
     if (bvn) newUser.bvn = bvn;
 
     const stored = getUsersFromStorage();
-    stored[normalizedEmail] = { password, user: newUser };
+    stored[norm] = { password, user: newUser };
     saveUsersToStorage(stored);
 
-    initializeNewUser(newUser.id);
+    initUserData(newUser.id);
+    initUserCash(newUser.id, 5000);
+
     setUser(newUser);
     localStorage.setItem("invest_user", JSON.stringify(newUser));
     return true;
@@ -128,9 +163,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("invest_user", JSON.stringify(updated));
 
     const stored = getUsersFromStorage();
-    const normalizedEmail = user.email.toLowerCase();
-    if (stored[normalizedEmail]) {
-      stored[normalizedEmail].user = updated;
+    const norm = user.email.toLowerCase();
+    if (stored[norm]) {
+      stored[norm].user = updated;
       saveUsersToStorage(stored);
     }
   };
