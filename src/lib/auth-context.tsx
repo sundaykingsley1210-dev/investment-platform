@@ -109,8 +109,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(stored);
         if (parsed && parsed.id && parsed.email) {
           const ADMIN_EMAILS = ["admin@invest.com", "sundaykingsley1210@gmail.com"];
+          const ADMIN_NAMES: Record<string, string> = {
+            "admin@invest.com": "Admin User",
+            "sundaykingsley1210@gmail.com": "Sunday Kingsley",
+          };
           if (ADMIN_EMAILS.includes(parsed.email.toLowerCase())) {
             parsed.role = "admin";
+            if (ADMIN_NAMES[parsed.email.toLowerCase()]) {
+              parsed.name = ADMIN_NAMES[parsed.email.toLowerCase()];
+            }
           }
           setUser(parsed);
         }
@@ -133,6 +140,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const ADMIN_EMAILS = ["admin@invest.com", "sundaykingsley1210@gmail.com"];
+    const ADMIN_NAMES: Record<string, string> = {
+      "admin@invest.com": "Admin User",
+      "sundaykingsley1210@gmail.com": "Sunday Kingsley",
+    };
 
     let matched = hardcoded[norm];
 
@@ -147,7 +158,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    const u = { ...matched.user, role: ADMIN_EMAILS.includes(norm) ? "admin" : matched.user.role };
+    const u = {
+      ...matched.user,
+      role: ADMIN_EMAILS.includes(norm) ? "admin" : matched.user.role,
+      name: ADMIN_NAMES[norm] || matched.user.name,
+    };
+
+    const storedUsers = getUsersFromStorage();
+    if (storedUsers[norm]) {
+      storedUsers[norm].user = { ...storedUsers[norm].user, role: u.role, name: u.name };
+      saveUsersToStorage(storedUsers);
+    }
     initUserData(u.id);
     if (u.id === "100") initUserCash(u.id, 178300);
     else if (u.id === "101") initUserCash(u.id, 3150);
