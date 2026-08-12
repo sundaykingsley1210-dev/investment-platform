@@ -108,6 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed && parsed.id && parsed.email) {
+          const ADMIN_EMAILS = ["admin@invest.com", "sundaykingsley1210@gmail.com"];
+          if (ADMIN_EMAILS.includes(parsed.email.toLowerCase())) {
+            parsed.role = "admin";
+          }
           setUser(parsed);
         }
       }
@@ -159,7 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (found) return false;
 
     const norm = email.trim().toLowerCase();
-    const newUser: User = { id: Date.now().toString(), name, email: norm, role: "user" };
+    const ADMIN_EMAILS = ["admin@invest.com", "sundaykingsley1210@gmail.com"];
+    const newUser: User = { id: Date.now().toString(), name, email: norm, role: ADMIN_EMAILS.includes(norm) ? "admin" : "user" };
     if (bvn) newUser.bvn = bvn;
 
     const stored = getUsersFromStorage();
