@@ -63,8 +63,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    const normalizedEmail = email.trim().toLowerCase();
     const allUsers = { ...getSeedUsers(), ...getRegisteredUsers() };
-    const entry = allUsers[email];
+    
+    // Find user by case-insensitive email match
+    const entryKey = Object.keys(allUsers).find((key) => key.toLowerCase() === normalizedEmail);
+    const entry = entryKey ? allUsers[entryKey] : null;
+    
     if (entry && entry.password === password) {
       initializeNewUser(entry.user.id);
       setUser(entry.user);
@@ -75,13 +80,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signup = async (name: string, email: string, password: string, bvn?: string): Promise<boolean> => {
+    const normalizedEmail = email.trim().toLowerCase();
     const allUsers = { ...getSeedUsers(), ...getRegisteredUsers() };
-    if (allUsers[email]) return false;
+    
+    // Check if email already exists (case-insensitive)
+    const exists = Object.keys(allUsers).some((key) => key.toLowerCase() === normalizedEmail);
+    if (exists) return false;
 
-    const newUser: User = { id: Date.now().toString(), name, email, role: "user" };
+    const newUser: User = { id: Date.now().toString(), name, email: normalizedEmail, role: "user" };
     if (bvn) newUser.bvn = bvn;
 
-    allUsers[email] = { password, user: newUser };
+    allUsers[normalizedEmail] = { password, user: newUser };
     saveRegisteredUsers(allUsers);
 
     initializeNewUser(newUser.id);
@@ -97,9 +106,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("invest_user", JSON.stringify(updated));
 
     const allUsers = getRegisteredUsers();
-    const email = user.email;
-    if (allUsers[email]) {
-      allUsers[email].user = updated;
+    const normalizedEmail = user.email.toLowerCase();
+    const entryKey = Object.keys(allUsers).find((key) => key.toLowerCase() === normalizedEmail);
+    if (entryKey) {
+      allUsers[entryKey].user = updated;
       saveRegisteredUsers(allUsers);
     }
   };
