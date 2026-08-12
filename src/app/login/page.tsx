@@ -94,6 +94,13 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
+                onClick={() => { setEmail("sundaykingsley1210@gmail.com"); setPassword("admin123"); setError(""); }}
+                className="w-full px-3 py-2.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-gray-700 text-left"
+              >
+                Sunday (Admin): sundaykingsley1210@gmail.com / admin123
+              </button>
+              <button
+                type="button"
                 onClick={() => { setEmail("unico@invest.com"); setPassword("Happiness"); setError(""); }}
                 className="w-full px-3 py-2.5 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition text-emerald-700 text-left"
               >
