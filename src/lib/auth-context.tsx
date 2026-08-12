@@ -22,23 +22,24 @@ interface StoredUser {
   user: User;
 }
 
-function getRegisteredUsers(): Record<string, StoredUser> {
+function getUsersFromStorage(): Record<string, StoredUser> {
   if (typeof window === "undefined") return {};
-  const raw = localStorage.getItem(USERS_KEY);
-  if (!raw) return {};
   try {
+    const raw = localStorage.getItem(USERS_KEY);
+    if (!raw) return {};
     return JSON.parse(raw);
   } catch {
     return {};
   }
 }
 
-function saveRegisteredUsers(users: Record<string, StoredUser>) {
+function saveUsersToStorage(users: Record<string, StoredUser>) {
+  if (typeof window === "undefined") return;
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
 
-function getSeedUsers(): Record<string, StoredUser> {
-  return {
+function getAllAccounts(): Record<string, StoredUser> {
+  const seed: Record<string, StoredUser> = {
     "admin@invest.com": {
       password: "admin123",
       user: { id: "1", name: "Admin User", email: "admin@invest.com", role: "admin" },
@@ -56,6 +57,19 @@ function getSeedUsers(): Record<string, StoredUser> {
       user: { id: "101", name: "Ozumba", email: "ozumba@invest.com", role: "user" },
     },
   };
+  const stored = getUsersFromStorage();
+  return { ...seed, ...stored };
+}
+
+function findUserByEmail(email: string): { key: string; entry: StoredUser } | null {
+  const all = getAllAccounts();
+  const normalized = email.trim().toLowerCase();
+  for (const key of Object.keys(all)) {
+    if (key.toLowerCase() === normalized) {
+      return { key, entry: all[key] };
+    }
+  }
+  return null;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -63,43 +77,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem("invest_user");
-    if (stored) {
-      try { setUser(JSON.parse(stored)); } catch { /* ignore */ }
+    try {
+      const stored = localStorage.getItem("invest_user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.id && parsed.email) {
+          setUser(parsed);
+        }
+      }
+    } catch {
+      // ignore
     }
     setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const allUsers = { ...getSeedUsers(), ...getRegisteredUsers() };
-    
-    // Find user by case-insensitive email match
-    const entryKey = Object.keys(allUsers).find((key) => key.toLowerCase() === normalizedEmail);
-    const entry = entryKey ? allUsers[entryKey] : null;
-    
-    if (entry && entry.password === password) {
-      initializeNewUser(entry.user.id);
-      setUser(entry.user);
-      localStorage.setItem("invest_user", JSON.stringify(entry.user));
-      return true;
-    }
-    return false;
+    const found = findUserByEmail(email);
+    if (!found) return false;
+    if (found.entry.password !== password) return false;
+
+    initializeNewUser(found.entry.user.id);
+    setUser(found.entry.user);
+    localStorage.setItem("invest_user", JSON.stringify(found.entry.user));
+    return true;
   };
 
   const signup = async (name: string, email: string, password: string, bvn?: string): Promise<boolean> => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const allUsers = { ...getSeedUsers(), ...getRegisteredUsers() };
-    
-    // Check if email already exists (case-insensitive)
-    const exists = Object.keys(allUsers).some((key) => key.toLowerCase() === normalizedEmail);
-    if (exists) return false;
+    const found = findUserByEmail(email);
+    if (found) return false;
 
+    const normalizedEmail = email.trim().toLowerCase();
     const newUser: User = { id: Date.now().toString(), name, email: normalizedEmail, role: "user" };
     if (bvn) newUser.bvn = bvn;
 
-    allUsers[normalizedEmail] = { password, user: newUser };
-    saveRegisteredUsers(allUsers);
+    const stored = getUsersFromStorage();
+    stored[normalizedEmail] = { password, user: newUser };
+    saveUsersToStorage(stored);
 
     initializeNewUser(newUser.id);
     setUser(newUser);
@@ -113,12 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updated);
     localStorage.setItem("invest_user", JSON.stringify(updated));
 
-    const allUsers = getRegisteredUsers();
+    const stored = getUsersFromStorage();
     const normalizedEmail = user.email.toLowerCase();
-    const entryKey = Object.keys(allUsers).find((key) => key.toLowerCase() === normalizedEmail);
-    if (entryKey) {
-      allUsers[entryKey].user = updated;
-      saveRegisteredUsers(allUsers);
+    if (stored[normalizedEmail]) {
+      stored[normalizedEmail].user = updated;
+      saveUsersToStorage(stored);
     }
   };
 
