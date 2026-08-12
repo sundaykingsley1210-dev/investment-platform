@@ -69,7 +69,7 @@ const SEED_ACCOUNTS: Record<string, StoredUser> = {
 };
 
 function findAccount(email: string): { key: string; account: StoredUser } | null {
-  const all = { ...SEED_ACCOUNTS, ...getUsersFromStorage() };
+  const all = { ...getUsersFromStorage(), ...SEED_ACCOUNTS };
   const norm = email.trim().toLowerCase();
   for (const key of Object.keys(all)) {
     if (key.toLowerCase() === norm) {
