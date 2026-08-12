@@ -94,24 +94,17 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { setEmail("user@invest.com"); setPassword("user123"); setError(""); }}
-                className="w-full px-3 py-2.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition text-gray-700 text-left"
+                onClick={() => { setEmail("unico@invest.com"); setPassword("Happiness"); setError(""); }}
+                className="w-full px-3 py-2.5 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition text-emerald-700 text-left"
               >
-                User: user@invest.com / user123
+                Unico (VIP 4): unico@invest.com / Happiness
               </button>
               <button
                 type="button"
-                onClick={() => { setEmail("unico@invest.com"); setPassword("unico123"); setError(""); }}
+                onClick={() => { setEmail("ozumbacharles7@gmail.com"); setPassword("charles.com123"); setError(""); }}
                 className="w-full px-3 py-2.5 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition text-emerald-700 text-left"
               >
-                Unico: unico@invest.com / unico123
-              </button>
-              <button
-                type="button"
-                onClick={() => { setEmail("ozumba@invest.com"); setPassword("ozumba123"); setError(""); }}
-                className="w-full px-3 py-2.5 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition text-emerald-700 text-left"
-              >
-                Ozumba: ozumba@invest.com / ozumba123
+                Ozumba (VIP 1): ozumbacharles7@gmail.com / charles.com123
               </button>
             </div>
           </div>

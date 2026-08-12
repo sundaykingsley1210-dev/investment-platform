@@ -1,4 +1,4 @@
-import type { Holding, Transaction, PortfolioSummary, ChartDataPoint, PriceAlert, Referral, Payment, Message } from "./types";
+import type { Holding, Transaction, PortfolioSummary, ChartDataPoint, PriceAlert, Referral, Payment, Message, Task } from "./types";
 import { validateCardNumber, detectCardType } from "./card-validation";
 
 const STORAGE_PREFIX = "invest_";
@@ -42,11 +42,12 @@ export function saveCashBalance(userId: string, balance: number) {
   localStorage.setItem(getKey(userId, "cash"), JSON.stringify(balance));
 }
 
-export function initializeNewUser(userId: string) {
-  if (getHoldings(userId).length === 0 && getTransactions(userId).length === 0) {
+export function initializeNewUser(userId: string, initialBalance?: number) {
+  const hasData = localStorage.getItem(getKey(userId, "cash")) !== null;
+  if (!hasData) {
     saveHoldings(userId, []);
     saveTransactions(userId, []);
-    saveCashBalance(userId, 5000);
+    saveCashBalance(userId, initialBalance ?? 5000);
   }
 }
 
@@ -462,6 +463,84 @@ export function getAllUsers(): { id: string; name: string; email: string }[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem("invest_registered_users");
   if (!raw) return [];
-  const users: Record<string, { password: string; user: { id: string; name: string; email: string; role: string; bvn?: string } }> = JSON.parse(raw);
+  const users: Record<string, { password: string; user: { id: string; name: string; email: string; role: string; bvn?: string; vip?: number } }> = JSON.parse(raw);
   return Object.values(users).map((u) => ({ id: u.user.id, name: u.user.name, email: u.user.email }));
+}
+
+const TASKS_KEY = "invest_tasks";
+
+export function getTasksForUser(userId: string): Task[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem(TASKS_KEY);
+  if (!raw) return [];
+  const all: Task[] = JSON.parse(raw);
+  return all.filter((t) => t.userId === userId);
+}
+
+export function getAvailableTasks(userId: string): Task[] {
+  return getTasksForUser(userId).filter((t) => t.status === "available");
+}
+
+export function getCompletedTasks(userId: string): Task[] {
+  return getTasksForUser(userId).filter((t) => t.status === "completed");
+}
+
+export function completeTask(userId: string, taskId: string): boolean {
+  const raw = localStorage.getItem(TASKS_KEY);
+  if (!raw) return false;
+  const all: Task[] = JSON.parse(raw);
+  const task = all.find((t) => t.id === taskId && t.userId === userId);
+  if (!task || task.status !== "completed") return false;
+
+  const cash = getCashBalance(userId);
+  saveCashBalance(userId, cash + task.reward);
+
+  const txs = getTransactions(userId);
+  const today = new Date().toISOString().split("T")[0];
+  txs.unshift({
+    id: generateId(),
+    type: "deposit",
+    symbol: "TASK",
+    shares: 1,
+    price: task.reward,
+    total: task.reward,
+    date: today,
+  });
+  saveTransactions(userId, txs);
+  return true;
+}
+
+export function createTask(userId: string, title: string, description: string, reward: number): Task {
+  const raw = localStorage.getItem(TASKS_KEY);
+  const all: Task[] = raw ? JSON.parse(raw) : [];
+  const newTask: Task = {
+    id: generateId(),
+    userId,
+    title,
+    description,
+    reward,
+    status: "available",
+    date: new Date().toISOString().split("T")[0],
+  };
+  all.unshift(newTask);
+  localStorage.setItem(TASKS_KEY, JSON.stringify(all));
+  return newTask;
+}
+
+export function seedTasksForUser(userId: string, vipLevel: number) {
+  const existing = getTasksForUser(userId);
+  if (existing.length > 0) return;
+
+  const baseTasks = [
+    { title: "Daily Login Bonus", description: "Log in to your account today", reward: 100 * vipLevel },
+    { title: "View Portfolio", description: "Check your investment portfolio", reward: 50 * vipLevel },
+    { title: "Check Market Prices", description: "Browse the market page", reward: 75 * vipLevel },
+    { title: "Update Profile", description: "Keep your profile information up to date", reward: 150 * vipLevel },
+    { title: "Refer a Friend", description: "Share InvestPro with someone you know", reward: 500 * vipLevel },
+    { title: "Make a Deposit", description: "Fund your wallet with any amount", reward: 200 * vipLevel },
+    { title: "Review Transactions", description: "Check your transaction history", reward: 50 * vipLevel },
+    { title: "Set Price Alert", description: "Create a price alert for a stock", reward: 100 * vipLevel },
+  ];
+
+  baseTasks.forEach((t) => createTask(userId, t.title, t.description, t.reward));
 }

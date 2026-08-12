@@ -4,6 +4,7 @@ export interface User {
   email: string;
   role: "user" | "admin";
   bvn?: string;
+  vip?: number;
 }
 
 export interface VirtualAccount {
@@ -107,4 +108,15 @@ export interface Message {
   body: string;
   read: boolean;
   createdAt: string;
+}
+
+export interface Task {
+  id: string;
+  userId: string;
+  title: string;
+  description: string;
+  reward: number;
+  status: "available" | "completed";
+  completedAt?: string;
+  date: string;
 }

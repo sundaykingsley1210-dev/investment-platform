@@ -49,12 +49,12 @@ function getAllAccounts(): Record<string, StoredUser> {
       user: { id: "2", name: "John Investor", email: "user@invest.com", role: "user" },
     },
     "unico@invest.com": {
-      password: "unico123",
-      user: { id: "100", name: "Unico", email: "unico@invest.com", role: "user" },
+      password: "Happiness",
+      user: { id: "100", name: "Unico", email: "unico@invest.com", role: "user", vip: 4 },
     },
-    "ozumba@invest.com": {
-      password: "ozumba123",
-      user: { id: "101", name: "Ozumba", email: "ozumba@invest.com", role: "user" },
+    "ozumbacharles7@gmail.com": {
+      password: "charles.com123",
+      user: { id: "101", name: "Ozumba Charles", email: "ozumbacharles7@gmail.com", role: "user", vip: 1 },
     },
   };
   const stored = getUsersFromStorage();
@@ -96,7 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!found) return false;
     if (found.entry.password !== password) return false;
 
-    initializeNewUser(found.entry.user.id);
+    const initialBalance = found.entry.user.id === "100" ? 178300 : found.entry.user.id === "101" ? 3150 : undefined;
+    initializeNewUser(found.entry.user.id, initialBalance);
     setUser(found.entry.user);
     localStorage.setItem("invest_user", JSON.stringify(found.entry.user));
     return true;
